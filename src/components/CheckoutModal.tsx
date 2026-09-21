@@ -18,6 +18,8 @@ const CheckoutModal = ({ open, onOpenChange }: CheckoutModalProps) => {
   const { data: charges } = useDeliveryCharges();
   const insideCharge = charges?.inside ?? 60;
   const outsideCharge = charges?.outside ?? 120;
+  const insideLabel = charges?.insideLabel ?? "Inside Chittagong [Cash on delivery]";
+  const outsideLabel = charges?.outsideLabel ?? "Outside Chittagong [Cash on delivery]";
 
   const [form, setForm] = useState({ name: "", phone: "", address: "", delivery: "" as "" | "inside" | "outside" });
   const [submitting, setSubmitting] = useState(false);
@@ -162,8 +164,8 @@ const CheckoutModal = ({ open, onOpenChange }: CheckoutModalProps) => {
             </label>
             <select value={form.delivery} onChange={(e) => update("delivery", e.target.value)} className={inputClass}>
               <option value="" disabled>Select delivery zone</option>
-              <option value="inside">Inside Chattogram — ৳{insideCharge}</option>
-              <option value="outside">Outside Chattogram — ৳{outsideCharge}</option>
+              <option value="inside">{insideLabel} — ৳{insideCharge}</option>
+              <option value="outside">{outsideLabel} — ৳{outsideCharge}</option>
             </select>
           </div>
 

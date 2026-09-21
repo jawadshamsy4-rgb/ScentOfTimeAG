@@ -177,7 +177,7 @@ const TrackOrderPage = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => generateInvoice(selectedOrder as any)}
-                        className="gap-2 h-7 px-2 text-[11px]"
+                        className="gap-1.5 h-7 px-3 text-[11px] font-body rounded-full border-gold/30 hover:border-gold hover:bg-gold/10 text-gold transition-all"
                       >
                         <Download size={12} />
                         Invoice (PDF)

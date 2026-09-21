@@ -109,8 +109,11 @@ export const generateInvoice = (order: Order) => {
   doc.text(addressLines, 105, 58);
 
   // Item Details Table
-  const unitPrice = (order.total_price - (order.delivery_charge || 0)) / (order.quantity || 1);
-  const itemSubtotal = order.total_price - (order.delivery_charge || 0);
+  const deliveryCharge = Number(order.delivery_charge) || 0;
+  const totalPrice = Number(order.total_price) || 0;
+  const itemSubtotal = totalPrice - deliveryCharge;
+  const quantity = Number(order.quantity) || 1;
+  const unitPrice = itemSubtotal / quantity;
 
   const variantText = order.variant + (order.selected_perfumes && order.selected_perfumes.length > 0 
     ? `\nFragrances: ${order.selected_perfumes.join(", ")}` 
@@ -120,15 +123,16 @@ export const generateInvoice = (order: Order) => {
     [
       order.product,
       variantText,
-      order.quantity.toString(),
-      `৳${Math.round(unitPrice).toLocaleString()}`,
-      `৳${Math.round(itemSubtotal).toLocaleString()}`
+      quantity.toString(),
+      `BDT ${Math.round(unitPrice).toLocaleString()}`,
+      `BDT ${Math.round(itemSubtotal).toLocaleString()}`
     ]
   ];
 
   (doc as any).autoTable({
     startY: 80,
-    head: [['Product Description', 'Variant / Specifications', 'Qty', 'Unit Price', 'Amount']],
+    margin: { left: 14, right: 14 },
+    head: [['Product Description', 'Variant / Specifications', 'Qty', 'Unit Price', 'Total']],
     body: tableData,
     theme: 'plain',
     headStyles: {
@@ -147,46 +151,55 @@ export const generateInvoice = (order: Order) => {
       fillColor: [252, 250, 247],
     },
     columnStyles: {
-      0: { fontStyle: 'bold', cellWidth: 55 },
-      1: { cellWidth: 55 },
-      2: { halign: 'center', cellWidth: 20 },
-      3: { halign: 'right', cellWidth: 26 },
-      4: { halign: 'right', cellWidth: 26 },
+      0: { fontStyle: 'bold', cellWidth: 50 },
+      1: { cellWidth: 52 },
+      2: { halign: 'center', cellWidth: 16 },
+      3: { halign: 'right', cellWidth: 32 },
+      4: { halign: 'right', cellWidth: 32 },
     },
   });
 
   const finalY = (doc as any).lastAutoTable?.finalY || 105;
 
-  // Calculation Summary Box
-  const summaryX = 120;
+  // Calculation Summary Section
+  const summaryLeft = 110;
+  const rightMargin = 196;
+
   doc.setDrawColor(220, 215, 205);
-  doc.line(summaryX, finalY + 4, 196, finalY + 4);
+  doc.setLineWidth(0.5);
+  doc.line(summaryLeft, finalY + 4, rightMargin, finalY + 4);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...mutedGray);
-  doc.text("Items Subtotal:", summaryX, finalY + 11);
+  doc.text("Items Subtotal:", summaryLeft, finalY + 11);
   doc.setTextColor(...darkCharcoal);
-  doc.text(`BDT ৳${Math.round(itemSubtotal).toLocaleString()}`, 196, finalY + 11, { align: 'right' });
+  doc.text(`BDT ${Math.round(itemSubtotal).toLocaleString()}`, rightMargin, finalY + 11, { align: 'right' });
 
   doc.setTextColor(...mutedGray);
-  doc.text("Delivery Charge:", summaryX, finalY + 17);
+  doc.text("Delivery Charge:", summaryLeft, finalY + 17);
   doc.setTextColor(...darkCharcoal);
-  doc.text(`BDT ৳${(order.delivery_charge || 0).toLocaleString()}`, 196, finalY + 17, { align: 'right' });
+  doc.text(`BDT ${deliveryCharge.toLocaleString()}`, rightMargin, finalY + 17, { align: 'right' });
 
-  // Grand Total Highlight
+  // Grand Total Highlight Box
+  const boxY = finalY + 22;
+  const boxHeight = 12;
+  const boxWidth = rightMargin - summaryLeft + 4;
+
   doc.setFillColor(...lightBg);
-  doc.rect(summaryX - 4, finalY + 22, 80, 11, 'F');
+  doc.roundedRect(summaryLeft - 2, boxY, boxWidth, boxHeight, 1.5, 1.5, 'F');
   doc.setDrawColor(...goldColor);
-  doc.rect(summaryX - 4, finalY + 22, 80, 11, 'S');
+  doc.setLineWidth(0.75);
+  doc.roundedRect(summaryLeft - 2, boxY, boxWidth, boxHeight, 1.5, 1.5, 'S');
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
+  doc.setFontSize(9.5);
   doc.setTextColor(...goldColor);
-  doc.text("Total Payable (COD):", summaryX, finalY + 29);
-  doc.setFontSize(11);
+  doc.text("Total Payable (COD):", summaryLeft + 3, boxY + 7.5);
+
+  doc.setFontSize(10.5);
   doc.setTextColor(...darkCharcoal);
-  doc.text(`BDT ৳${order.total_price.toLocaleString()}`, 194, finalY + 29, { align: 'right' });
+  doc.text(`BDT ${totalPrice.toLocaleString()}`, rightMargin - 3, boxY + 7.5, { align: 'right' });
 
   // Bottom Notice & Sign-off
   const footerY = Math.max(finalY + 48, 250);

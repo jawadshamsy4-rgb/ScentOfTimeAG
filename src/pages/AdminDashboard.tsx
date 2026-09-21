@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { LogOut, Mail, CheckCircle, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 const AdminDashboard = () => {
   const [email, setEmail] = useState("");
@@ -13,24 +14,15 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isAdmin, handleLogout } = useAdminAuth();
 
   useEffect(() => {
-    checkAdminAndFetch();
-  }, []);
+    if (isAdmin) {
+      fetchSettings();
+    }
+  }, [isAdmin]);
 
-  const checkAdminAndFetch = async () => {
-    const { data: { session } } = await supabase.auth.getSession(); const user = session?.user;
-    if (!user) { navigate("/admin"); return; }
-
-    const { data: roleData } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .maybeSingle();
-
-    if (!roleData) { navigate("/admin"); return; }
-
+  const fetchSettings = async () => {
     const { data: setting } = await supabase
       .from("site_settings")
       .select("value")
@@ -67,11 +59,6 @@ const AdminDashboard = () => {
       toast({ title: "Email saved successfully!", description: "Order notifications will be sent to this address." });
     }
     setSaving(false);
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/admin");
   };
 
   if (loading) {

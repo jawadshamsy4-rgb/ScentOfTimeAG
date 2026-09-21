@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut, Plus, Pencil, Trash2, Package, X, Upload, Home } from "lucide-react";
 import AdminTabNav from "@/components/AdminTabNav";
 import { useToast } from "@/hooks/use-toast";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface VariantInput {
@@ -91,19 +92,13 @@ const AdminProducts = () => {
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isAdmin, checking: authChecking, handleLogout } = useAdminAuth();
 
   useEffect(() => {
-    checkAdminAndFetch();
-  }, []);
-
-  const checkAdminAndFetch = async () => {
-    const { data: { session } } = await supabase.auth.getSession(); const user = session?.user;
-    if (!user) { navigate("/admin"); return; }
-    const { data: roleData } = await supabase
-      .from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
-    if (!roleData) { navigate("/admin"); return; }
-    await fetchProducts();
-  };
+    if (isAdmin) {
+      fetchProducts();
+    }
+  }, [isAdmin]);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -115,11 +110,6 @@ const AdminProducts = () => {
       setProducts((data as DbProduct[]) || []);
     }
     setLoading(false);
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/admin");
   };
 
   const openAdd = () => {

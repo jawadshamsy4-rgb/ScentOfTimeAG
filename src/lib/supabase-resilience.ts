@@ -46,21 +46,25 @@ export const isSessionError = (error: unknown) => {
 };
 
 export const resetClientSession = async () => {
+  // Do NOT forcibly sign out or wipe localStorage keys automatically.
+  // Instead, attempt to refresh the session seamlessly so the admin remains logged in.
   try {
-    await supabase.auth.signOut({ scope: "local" });
+    await supabase.auth.refreshSession();
   } catch {
-    // Ignore sign-out failures and clear client storage directly.
+    // Ignore transient refresh errors
   }
-
-  if (typeof window === "undefined") return;
-
-  clearStorageKeys(window.localStorage);
-  clearStorageKeys(window.sessionStorage);
 };
 
 export const ensureFreshSession = async () => {
   try {
-    await supabase.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.expires_at) {
+      const now = Math.floor(Date.now() / 1000);
+      // If expiring within 10 minutes or already expired, refresh it proactively
+      if (session.expires_at - now < 600) {
+        await supabase.auth.refreshSession();
+      }
+    }
   } catch {
     // Swallow transient errors; do not nuke the session.
   }
@@ -74,8 +78,17 @@ export const runWithSessionRecovery = async <T>(queryFn: () => Promise<T>) => {
   } catch (error) {
     if (!isSessionError(error)) throw error;
 
-    await resetClientSession();
-    return await queryFn();
+    // Try refreshing the session instead of signing the user out
+    try {
+      const { data, error: refreshError } = await supabase.auth.refreshSession();
+      if (!refreshError && data?.session) {
+        return await queryFn();
+      }
+    } catch {
+      // Ignore refresh error
+    }
+
+    throw error;
   }
 };
 

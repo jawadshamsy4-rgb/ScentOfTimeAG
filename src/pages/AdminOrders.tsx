@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { LogOut, Download, Package, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const STATUS_OPTIONS = ["Pending", "Confirmed", "Processing", "Shipped", "Delivered", "Cancelled"];
@@ -30,24 +31,16 @@ const AdminOrders = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isAdmin, handleLogout } = useAdminAuth();
 
   useEffect(() => {
-    checkAdminAndFetch();
-  }, []);
+    if (isAdmin) {
+      fetchOrders();
+    }
+  }, [isAdmin]);
 
-  const checkAdminAndFetch = async () => {
-    const { data: { session } } = await supabase.auth.getSession(); const user = session?.user;
-    if (!user) { navigate("/admin"); return; }
-
-    const { data: roleData } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .maybeSingle();
-
-    if (!roleData) { navigate("/admin"); return; }
-
+  const fetchOrders = async () => {
+    setLoading(true);
     const { data, error } = await supabase
       .from("orders")
       .select("*")
@@ -84,11 +77,6 @@ const AdminOrders = () => {
     }
     setOrders((prev) => prev.filter((o) => o.id !== orderId));
     toast({ title: "Item deleted successfully." });
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/admin");
   };
 
   const exportToCSV = () => {

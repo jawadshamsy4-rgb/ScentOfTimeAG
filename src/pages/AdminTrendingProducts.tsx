@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import AdminTabNav from "@/components/AdminTabNav";
 import { supabase } from "@/integrations/supabase/client";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Button } from "@/components/ui/button";
 import { LogOut, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -24,20 +25,13 @@ const AdminTrendingProducts = () => {
   const [products, setProducts] = useState<TrendingProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { isAdmin, handleLogout } = useAdminAuth();
 
   useEffect(() => {
-    const checkAdmin = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { navigate("/admin"); return; }
-      const { data } = await supabase.rpc("has_role", { _user_id: session.user.id, _role: "admin" });
-      if (!data) navigate("/admin");
-    };
-    checkAdmin();
-  }, [navigate]);
-
-  useEffect(() => {
-    fetchProducts();
-  }, []);
+    if (isAdmin) {
+      fetchProducts();
+    }
+  }, [isAdmin]);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -110,11 +104,6 @@ const AdminTrendingProducts = () => {
 
     toast({ title: "Saved", description: `${currentTrending.length} trending product(s) updated.` });
     setSaving(false);
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/admin");
   };
 
   return (

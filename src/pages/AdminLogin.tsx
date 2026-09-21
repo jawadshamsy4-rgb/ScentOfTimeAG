@@ -10,8 +10,40 @@ const AdminLogin = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [initialChecking, setInitialChecking] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const checkExistingSession = async () => {
+      try {
+        let { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          const { data: refreshed } = await supabase.auth.refreshSession();
+          session = refreshed.session;
+        }
+
+        if (session?.user) {
+          const { data: hasRole } = await supabase.rpc("has_role", {
+            _user_id: session.user.id,
+            _role: "admin",
+          });
+
+          if (hasRole) {
+            localStorage.setItem("scent_admin_logged_in", "true");
+            navigate("/admin/products", { replace: true });
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Session check error:", err);
+      } finally {
+        setInitialChecking(false);
+      }
+    };
+
+    void checkExistingSession();
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,20 +54,29 @@ const AdminLogin = () => {
       if (error) throw error;
 
       // Check admin role
-      const { data: roleData, error: roleError } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", data.user.id)
-        .eq("role", "admin")
-        .maybeSingle();
+      const { data: hasRole, error: roleError } = await supabase.rpc("has_role", {
+        _user_id: data.user.id,
+        _role: "admin",
+      });
 
-      if (roleError) throw roleError;
+      let roleVerified = hasRole === true;
+      if (roleError || hasRole === null) {
+        const { data: roleRow } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", data.user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+        roleVerified = !!roleRow;
+      }
 
-      if (!roleData) {
+      if (!roleVerified) {
         await supabase.auth.signOut();
+        localStorage.removeItem("scent_admin_logged_in");
         throw new Error("Access denied. Admin privileges required.");
       }
 
+      localStorage.setItem("scent_admin_logged_in", "true");
       navigate("/admin/products");
     } catch (err: any) {
       toast({ title: "Login failed", description: err.message, variant: "destructive" });
@@ -43,6 +84,14 @@ const AdminLogin = () => {
       setLoading(false);
     }
   };
+
+  if (initialChecking) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="w-8 h-8 rounded-full border-2 border-gold/30 border-t-gold animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">

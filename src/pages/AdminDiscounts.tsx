@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCategoryDiscounts, useUpdateCategoryDiscount, type CategoryDiscount } from "@/hooks/useCategoryDiscounts";
 import { toast } from "@/hooks/use-toast";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { LogOut, Save, Percent, BadgeDollarSign } from "lucide-react";
 
 const AdminDiscounts = () => {
@@ -15,17 +16,7 @@ const AdminDiscounts = () => {
   const { data: discounts, isLoading } = useCategoryDiscounts();
   const updateDiscount = useUpdateCategoryDiscount();
   const [edits, setEdits] = useState<Record<string, Partial<CategoryDiscount>>>({});
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) navigate("/admin");
-    });
-  }, [navigate]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/admin");
-  };
+  const { handleLogout } = useAdminAuth();
 
   const getEdited = (d: CategoryDiscount) => ({ ...d, ...edits[d.id] });
 

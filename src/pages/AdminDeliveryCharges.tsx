@@ -5,32 +5,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { LogOut, Save, Truck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 const AdminDeliveryCharges = () => {
-  const [inside, setInside] = useState(60);
-  const [outside, setOutside] = useState(120);
-  const [loading, setLoading] = useState(true);
+  const [inside, setInside] = useState<number>(60);
+  const [outside, setOutside] = useState<number>(120);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isAdmin, handleLogout } = useAdminAuth();
 
   useEffect(() => {
-    checkAdminAndFetch();
-  }, []);
+    if (isAdmin) {
+      fetchCharges();
+    }
+  }, [isAdmin]);
 
-  const checkAdminAndFetch = async () => {
-    const { data: { session } } = await supabase.auth.getSession(); const user = session?.user;
-    if (!user) { navigate("/admin"); return; }
-
-    const { data: roleData } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .maybeSingle();
-
-    if (!roleData) { navigate("/admin"); return; }
-
+  const fetchCharges = async () => {
     const { data } = await supabase
       .from("site_settings")
       .select("key, value")
@@ -71,11 +63,6 @@ const AdminDeliveryCharges = () => {
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/admin");
   };
 
   if (loading) {

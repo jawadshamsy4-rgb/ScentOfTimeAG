@@ -1,0 +1,1 @@
+UPDATE products SET category = 'Oud' WHERE category = 'Unisex';

@@ -1,0 +1,1 @@
+ALTER TABLE public.orders ADD COLUMN delivery_charge numeric NOT NULL DEFAULT 0;

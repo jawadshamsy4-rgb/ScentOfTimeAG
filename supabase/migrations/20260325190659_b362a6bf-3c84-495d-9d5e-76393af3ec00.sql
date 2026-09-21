@@ -1,0 +1,1 @@
+ALTER TABLE public.orders ADD COLUMN selected_perfumes text[] DEFAULT NULL;

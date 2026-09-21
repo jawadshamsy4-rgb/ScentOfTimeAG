@@ -1,0 +1,1 @@
+ALTER TABLE public.products ADD COLUMN in_stock boolean NOT NULL DEFAULT true;

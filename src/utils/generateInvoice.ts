@@ -38,7 +38,7 @@ export const generateInvoice = (order: Order) => {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...goldColor);
-  doc.text("HAUTE PARFUMERIE • BANGLADESH", 14, 28);
+  doc.text("BANGLADESH", 14, 28);
 
   doc.setFontSize(8.5);
   doc.setTextColor(...mutedGray);
